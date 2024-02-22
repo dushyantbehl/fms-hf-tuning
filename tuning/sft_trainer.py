@@ -1,6 +1,6 @@
 # Standard
 from datetime import datetime
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict
 import json
 import os, time
 
@@ -26,8 +26,8 @@ from tuning.config import configs, peft_config, tracker_configs
 from tuning.data import tokenizer_data_utils
 from tuning.utils.config_utils import get_hf_peft_config
 from tuning.utils.data_type_utils import get_torch_dtype
-from tuning.tracker.tracker import Tracker, get_tracker
-from tuning.tracker.aimstack_tracker import AimStackTracker
+from tuning.tracker.tracker import Tracker
+from tuning.tracker.utils import get_tracker
 
 logger = logging.get_logger("sft_trainer")
 
@@ -92,7 +92,8 @@ def train(
         Union[peft_config.LoraConfig, peft_config.PromptTuningConfig]
     ] = None,
     callbacks: Optional[List[TrainerCallback]] = None,
-    tracker: Optional[Tracker] = Tracker() # default tracker is dummy tracker
+    tracker: Optional[Tracker] = None,
+    exp_metadata: Optional[Dict] = None
 ):
     """Call the SFTTrainer
 
@@ -123,6 +124,7 @@ def train(
         train_args.fsdp_config = {"xla": False}
 
     task_type = "CAUSAL_LM"
+    additional_metrics = {}
 
     model_load_time = time.time()
     model = AutoModelForCausalLM.from_pretrained(
@@ -131,8 +133,7 @@ def train(
         torch_dtype=get_torch_dtype(model_args.torch_dtype),
         use_flash_attention_2=model_args.use_flash_attn,
     )
-    model_load_time = time.time() - model_load_time
-    tracker.track(metric=model_load_time, name='model_load_time')
+    additional_metrics['model_load_time'] = time.time() - model_load_time
 
     peft_config = get_hf_peft_config(task_type, peft_config)
 
@@ -262,6 +263,14 @@ def train(
         peft_config=peft_config,
     )
 
+    # We track additional metrics and experiment metadata after
+    # Trainer object creation to ensure that this is not repeated
+    # multiple times for FSDP runs.
+    if tracker is not None:
+        for k,v in additional_metrics.items():
+            tracker.track(metric=v, name=k, stage='additional_metrics')
+        tracker.set_params(params=exp_metadata, name='experiment_metadata')
+
     if run_distributed and peft_config is not None:
         trainer.accelerator.state.fsdp_plugin.auto_wrap_policy = fsdp_auto_wrap_policy(
             model
@@ -286,7 +295,7 @@ def main(**kwargs):
         default="pt",
     )
     parser.add_argument(
-        "--extra_metadata",
+        "--exp_metadata",
         type=str,
         default=None,
     )
@@ -315,27 +324,37 @@ def main(**kwargs):
     else:
         tracker_config=None
 
-    # Initialize the tracker early so we can calculate custom metrics like model_load_time.
-    tracker = get_tracker(tracker_name, tracker_config)
-
     # Initialize callbacks
     file_logger_callback = FileLoggingCallback(logger)
     peft_saving_callback = PeftSavingCallback()
     callbacks = [peft_saving_callback, file_logger_callback]
 
+    # Initialize the tracker
+    tracker = get_tracker(tracker_name, tracker_config)
     tracker_callback = tracker.get_hf_callback()
     if tracker_callback is not None:
         callbacks.append(tracker_callback)
 
-    # track extra metadata
-    if additional.extra_metadata is not None:
+    # extra metadata passed via client
+    metadata = None
+    if additional.exp_metadata is not None:
         try:
-            metadata = json.loads(additional.extra_metadata)
-            tracker.track_metadata(metadata)
+            metadata = json.loads(additional.exp_metadata)
+            if metadata is None or not isinstance(metadata, Dict):
+                logger.warn('metadata cannot be converted to simple k:v dict ignoring')
+                metadata = None
         except:
             logger.error("failed while parsing extra metadata. pass a valid json")
 
-    train(model_args, data_args, training_args, tune_config, callbacks, tracker)
+    train(
+        model_args=model_args,
+        data_args=data_args,
+        train_args=training_args,
+        peft_config=tune_config,
+        callbacks=callbacks,
+        tracker=tracker,
+        exp_metadata=metadata
+    )
 
 if __name__ == "__main__":
     fire.Fire(main)
