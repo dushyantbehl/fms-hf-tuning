@@ -202,7 +202,7 @@ def get_data_collator(
         # intruction_template_ids = tokenizer.encode(
         #     instruction_template, add_special_tokens=False
         # )[2:]
-        return DataCollatorForCompletionOnlyLM(
+        return DataCollatorForCompletionOnlyLM (
             response_template=response_template,
             instruction_template=instruction_template,
             tokenizer=tokenizer,
@@ -445,7 +445,7 @@ def combine_sequence(input_element: str, output_element: str, eos_token: str = "
         return input_element + " " + output_element + eos_token
     return input_element + output_element + eos_token
 
-
+# TODO: How do we handle this? is this another data handler?
 def preprocess_and_tokenize(
     element: Dict[str, str],
     tokenizer: AutoTokenizer,

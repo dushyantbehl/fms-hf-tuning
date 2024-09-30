@@ -1,0 +1,56 @@
+dataloader:
+    streaming: true
+datasets:
+  - name: dataset1
+    sampling:
+      ratio: 0.3
+    splitter_arguments:
+      test_size: 0
+    data_paths:
+      - /data/stackoverflow-kubectl_posts
+      - /data/stackoverflow-kubernetes_posts
+      - /data/stackoverflow-openshift_posts
+    data_handlers:
+      - name: render_template
+        arguments:
+          remove_columns: all
+          batched: false
+          fn_kwargs:
+            jinja_template: "{<jinja-template>}"
+  - name: dataset1
+    sampling:
+      ratio: 0.4
+    data_paths:
+      - /data/stackoverflow-kubectl_posts
+      - /data/stackoverflow-kubernetes_posts
+      - /data/stackoverflow-openshift_posts
+    splitter_arguments:
+      test_size: 1
+    data_handlers:
+      - name: render_template
+        arguments:
+          remove_columns: all
+          batched: false
+          fn_kwargs:
+            jinja_template: "{<jinja-template>}"
+  - name: dataset2
+    sampling:
+      ratio: 0.3
+    data_handlers:
+      - name: apply_tokenizer_chat_template
+        arguments:
+          remove_columns: all
+          batched: false
+    data_files:
+      - /data/stackoverflow-kubectl_posts.jsonl
+      - /data/stackoverflow-kubernetes_posts.jsonl
+  - name: dataset2
+    sampling:
+      ratio: 0.3
+    predefined_handlers:
+      name: apply_chat_template # pretraining <tokenize and merge everything>
+      fn_kwargs:
+        jinja_template: "<>"
+    data_files:
+      - /data/stackoverflow-kubectl_posts.jsonl
+      - /data/stackoverflow-kubernetes_posts.jsonl
