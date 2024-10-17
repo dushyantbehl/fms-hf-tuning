@@ -65,15 +65,15 @@ def is_chat_training(
 
 def validate_data_args(data_args, packing: bool, tokenizer):
 
+    if is_chat_training(data_args.train_dataset, tokenizer):
+        return
+
     is_train_data_pretokenized = (
         is_pretokenized_dataset(data_args.train_dataset) or data_args.tokens_field
     )
     is_eval_data_pretokenized = (
         is_pretokenized_dataset(data_args.validation_dataset) or data_args.tokens_field
     )
-
-    if is_chat_training(data_args.train_dataset, tokenizer):
-        return
 
     ### Data format 1
     # if the provided train dataset is pretokenized

@@ -287,13 +287,8 @@ def train(
     )
 
     # Configure the collator and validate args related to packing prior to formatting the dataset
-    if train_args.packing:
-        logger.info("Packing is set to True")
-        data_collator = None
-        packing = True
-    else:
-        logger.info("Packing is set to False")
-        packing = False
+    packing = train_args.packing
+    logger.info("Packing is set to "+str(packing))
 
     # Validate if data args are set properly
     validate_data_args(data_args, packing, tokenizer)
