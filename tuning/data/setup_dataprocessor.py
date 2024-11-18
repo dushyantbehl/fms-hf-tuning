@@ -39,6 +39,15 @@ def process_dataargs(
     data_args: DataArguments, tokenizer: AutoTokenizer, max_seq_length: int
 ):
 
+    if data_args.data_config_path:
+        data_config = load_and_validate_data_config(data_args.data_config_path)
+        processor = get_dataprocessor(
+            dataloaderconfig=data_config.dataloader, tokenizer=tokenizer
+        )
+        train_dataset = processor.process_dataset_configs(data_config.datasets)
+        ## HACK: For now just assume we take train_dataset via data config
+        return train_dataset, None, data_args.dataset_text_field
+
     validation_dataset = False
     if data_args.validation_data_path:
         validation_dataset = True
