@@ -2,8 +2,13 @@
 import re
 
 
+def is_map_batched(element):
+    # This `element` at the very least is a dict of values
+    # or for batched operation a dict with values as array.
+    return isinstance(next(iter(element.values())), list)
+
 def custom_data_formatter(element, template, formatted_dataset_field):
-    def replace_text(match_obj):
+    def replace_text(match_obj, element):
         captured_groups = match_obj.groups()
         if len(captured_groups) != 1:
             raise ValueError(
@@ -16,10 +21,26 @@ def custom_data_formatter(element, template, formatted_dataset_field):
 
         return element[index_object]
 
-    return {
-        formatted_dataset_field: re.sub(
-            r"{{([\s0-9a-zA-Z_\-\.]+)}}", replace_text, template
+    def formatted_item(element):
+        return {
+            formatted_dataset_field: re.sub(
+                r"{{([\s0-9a-zA-Z_\-\.]+)}}",
+                lambda match: replace_text(match, element),
+                template,
+            )
+        }
+
+    if not is_map_batched(element):
+        return formatted_item(element)
+
+    batch_size = len(next(iter(element.values())))
+    formatted_batch = []
+    for i in range(batch_size):
+        formatted_batch.append(
+            formatted_item({key: element[key][i] for key in element})
         )
+    return {
+        formatted_dataset_field: [b[formatted_dataset_field] for b in formatted_batch]
     }
 
 

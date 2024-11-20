@@ -133,7 +133,7 @@ class HFBasedDataPreProcessor(DataPreProcessor):
                     kwargs: Dict = data_handler.arguments
 
                     if "batched" not in kwargs:
-                        kwargs["batched"] = False
+                        kwargs["batched"] = True
 
                     column_names = raw_datasets[splitName].column_names
 
