@@ -3,7 +3,7 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # First Party
-from tests.data import MODEL_NAME
+from tests.testdata import MODEL_NAME
 
 # Local
 # First party

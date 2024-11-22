@@ -23,6 +23,7 @@ from datasets import Dataset, DatasetDict, IterableDataset
 from datasets.exceptions import DatasetNotFoundError
 from transformers import AutoTokenizer
 import datasets
+import torch
 
 # Local
 from tuning.data.data_config import DataConfig, DataLoaderConfig, DataSetConfig
@@ -37,18 +38,21 @@ class DataPreProcessor(ABC):
     dataloaderconfig: DataLoaderConfig = None
     registered_handlers: Dict[str, callable] = None
 
-    def __init__(
-        self,
-        dataloaderconfig: DataLoaderConfig,
-        tokenizer: AutoTokenizer,
-        accelerator=None,
-    ):
+    def __init__(self, dataloaderconfig: DataLoaderConfig, tokenizer: AutoTokenizer):
         self.tokenizer = tokenizer
         self.dataloaderconfig = dataloaderconfig
-        self.accelerator = None
 
         # Initialize other objects
         self.registered_handlers = {}
+
+    def load_dataset(
+        self,
+        datasetconfig: DataSetConfig,
+        splitName: str,
+        datafile: str = None,
+        **kwargs,
+    ):
+        NotImplementedError("Needs to be implemented")
 
     def register_data_handler(self, name: str, func: callable):
         self.registered_handlers[name] = func
@@ -65,29 +69,39 @@ class HFBasedDataPreProcessor(DataPreProcessor):
         self,
         dataloaderconfig: DataLoaderConfig,
         tokenizer: AutoTokenizer,
-        accelerator=None,
     ):
-        super().__init__(
-            dataloaderconfig=dataloaderconfig,
-            tokenizer=tokenizer,
-            accelerator=accelerator,
-        )
+        super().__init__(dataloaderconfig=dataloaderconfig, tokenizer=tokenizer)
 
-    def _load_dataset(self, datasetconfig, splitName, **kwargs):
-        files = datasetconfig.data_paths
-        name = datasetconfig.name
-        extns = []
-        for f in files:
-            e = get_extension(f)
-            extns.append(e)
-        # simple check to make sure all files are of same type.
-        # Do we need this assumption?
-        assert (
-            extns.count(extns[0]) == len(extns),
-            f"all files in a dataset {name} should have same extension",
-        )
+    def load_dataset(
+        self,
+        datasetconfig: DataSetConfig,
+        splitName: str,
+        datafile: str = None,
+        **kwargs,
+    ):
 
-        loader = get_loader_for_filepath(file_path=files[0])
+        if datafile and datasetconfig:
+            ValueError("Both datafile and datasetconfig should not be set")
+        if (not datafile) and (not datasetconfig):
+            ValueError("Either datafile or datasetconfig must be set")
+
+        if datafile:
+            files = [datafile]
+            loader = get_loader_for_filepath(file_path=datafile)
+        elif datasetconfig:
+            files = datasetconfig.data_paths
+            name = datasetconfig.name
+            # simple check to make sure all files are of same type.
+            extns = [get_extension(f) for f in files]
+            assert (
+                extns.count(extns[0]) == len(extns),
+                f"all files in a dataset {name} should have same extension",
+            )
+            loader = get_loader_for_filepath(file_path=files[0])
+
+        if loader == None or loader == "":
+            raise ValueError("data path is invalid [%s]", " ".join(files))
+
         try:
             return datasets.load_dataset(
                 loader,
@@ -95,6 +109,8 @@ class HFBasedDataPreProcessor(DataPreProcessor):
                 split=splitName,
                 **kwargs,
             )
+        except FileNotFoundError:
+            raise ValueError("data path is invalid [%s]", " ".join(files))
         except DatasetNotFoundError as e:
             raise e
 
@@ -111,7 +127,7 @@ class HFBasedDataPreProcessor(DataPreProcessor):
             logging.info("Loading %s" % (d.name))
 
             # In future the streaming etc go as kwargs of this function
-            raw_dataset = self._load_dataset(d, splitName)
+            raw_dataset = self.load_dataset(d, splitName)
 
             logging.info("Loaded raw dataset : {raw_datasets}")
 
@@ -181,10 +197,13 @@ class HFBasedDataPreProcessor(DataPreProcessor):
         self, dataset_cofigs: List[DataSetConfig], **kwargs
     ) -> Union[Dataset, IterableDataset]:
         train_dataset = None
-        if self.accelerator:
-            with self.accelerator.main_process_first(desc="Processing data..."):
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            if torch.distributed.get_rank() == 0:
+                logging.info("Processing data on rank 0...")
                 train_dataset = self._process_dataset_configs(dataset_cofigs, **kwargs)
+            torch.distributed.barrier()  # Make everyone wait
         else:
+            logging.info("Processing data...")
             train_dataset = self._process_dataset_configs(dataset_cofigs, **kwargs)
 
         return train_dataset
@@ -198,16 +217,13 @@ def autoregister_available_handlers(processor: DataPreProcessor):
 
 
 def get_dataprocessor(
-    dataloaderconfig: DataLoaderConfig,
-    tokenizer: AutoTokenizer,
-    accelerator: Optional[Any] = None,
+    dataloaderconfig: DataLoaderConfig, tokenizer: AutoTokenizer
 ) -> DataPreProcessor:
     loader = dataloaderconfig.type
     if loader == "default":
         processor = HFBasedDataPreProcessor(
             dataloaderconfig=dataloaderconfig,
             tokenizer=tokenizer,
-            accelerator=accelerator,
         )
     else:
         processor = None

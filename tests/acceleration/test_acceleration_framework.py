@@ -54,7 +54,7 @@ from tuning.config.acceleration_configs.quantized_lora_config import (
 from tuning.utils.import_utils import is_fms_accelerate_available
 
 # for some reason the CI will raise an import error if we try to import
-# these from tests.data
+# these from tests.testdata
 TWITTER_COMPLAINTS_JSON_FORMAT = os.path.join(
     os.path.dirname(__file__), "../data/twitter_complaints_json.json"
 )
