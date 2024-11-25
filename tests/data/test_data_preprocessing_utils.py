@@ -11,6 +11,11 @@ import pytest
 import yaml
 
 # First Party
+from tests.predefined_data_configs import (
+    APPLY_CUSTOM_TEMPLATE_YAML,
+    PRETOKENIZE_JSON_DATA_YAML,
+    TOKENIZE_AND_INSTRUCTION_MASKING_YAML,
+)
 from tests.testdata import (
     MODEL_NAME,
     TWITTER_COMPLAINTS_DATA_INPUT_OUTPUT_JSON,
@@ -34,18 +39,6 @@ from tuning.data.setup_dataprocessor import (
     _process_dataconfig_file,
     is_pretokenized_dataset,
     process_dataargs,
-)
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-PREDEFINED_DATA_CONFIGS = os.path.join(BASE_DIR, "examples", "predefined_data_configs")
-APPLY_CUSTOM_TEMPLATE_YAML = os.path.join(
-    PREDEFINED_DATA_CONFIGS, "apply_custom_template.yaml"
-)
-PRETOKENIZE_JSON_DATA_YAML = os.path.join(
-    PREDEFINED_DATA_CONFIGS, "pretokenized_json_data.yaml"
-)
-TOKENIZE_AND_INSTRUCTION_MASKING_YAML = os.path.join(
-    PREDEFINED_DATA_CONFIGS, "tokenize_and_instruction_masking.yaml"
 )
 
 
