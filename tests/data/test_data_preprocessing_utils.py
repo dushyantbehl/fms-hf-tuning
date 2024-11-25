@@ -403,7 +403,7 @@ def test_validate_args_pretokenized(data_args, packing):
     ],
 )
 def test_process_dataconfig_file(data_config_path, data_path):
-    """Ensure that the train/eval data are properly formatted based on the data args / text field"""
+    """Ensure that datasets are formatted and validated correctly based on the arguments passed in config file."""
     with open(data_config_path, "r") as f:
         yaml_content = yaml.safe_load(f)
     yaml_content["datasets"][0]["data_paths"][0] = data_path
