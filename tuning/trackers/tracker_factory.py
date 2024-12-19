@@ -46,6 +46,8 @@ def _get_tracker_class(T, C):
 def _is_tracker_installed(name):
     if name == "aim":
         return _is_aim_available
+    if name == "mlflow":
+        return _is_mlflow_available
     return False
 
 
