@@ -45,7 +45,11 @@ class DataPreProcessorConfig:
     sampling_stopping_strategy: Optional[str] = "all_exhausted"
     # Default seed is not none to ensure reproducability
     sampling_seed: Optional[float] = 42
-
+    exit_post_datapreprocessing: Optional[bool] = False
+    # Placed in train_args.output_dir+dataset_dump_name
+    dataset_dump_name: Optional[str] = "train_dataset"
+    # set number of files to save for larger datasets (e.g. try to have files smaller than 5GB)
+    dataset_dump_nshards: Optional[int] = 1024
 
 @dataclass
 class DataConfig:
@@ -128,6 +132,15 @@ def _validate_dataprocessor_config(dataprocessor_config) -> DataPreProcessorConf
         seed = kwargs["sampling_seed"]
         assert isinstance(seed, int), "sampling seed should be int"
         c.sampling_seed = seed
+    if "exit_post_datapreprocessing" in kwargs:
+        to_exit = kwargs["exit_post_datapreprocessing"]
+        c.exit_post_datapreprocessing = to_exit
+    if "dataset_dump_name" in kwargs:
+        dump_loc = kwargs["dataset_dump_name"]
+        c.dataset_dump_name = dump_loc
+    if "dataset_dump_nshards" in kwargs:
+        nshards = kwargs["dataset_dump_nshards"]
+        c.dataset_dump_nshards = nshards
     return c
 
 

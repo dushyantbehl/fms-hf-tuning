@@ -15,6 +15,7 @@
 # Standard
 from typing import Callable, Dict, Union
 import logging
+import os
 
 # Third Party
 from datasets import Dataset, IterableDataset
@@ -61,6 +62,7 @@ def _process_dataconfig_file(
     data_args: DataArguments,
     tokenizer: AutoTokenizer,
     additional_data_handlers: Dict[str, Callable] = None,
+    output_dir: str = None
 ):
     data_config = load_and_validate_data_config(data_args.data_config_path)
     processor = get_datapreprocessor(
@@ -69,6 +71,20 @@ def _process_dataconfig_file(
         additional_data_handlers=additional_data_handlers,
     )
     train_dataset = processor.process_dataset_configs(data_config.datasets)
+
+    processor_config = data_config.dataprocessor
+    to_exit = processor_config.exit_post_datapreprocessing
+    if to_exit:
+        logging.info("User requested to exit post data preprocessing")
+        output_path = os.path.join(output_dir, processor_config.dataset_dump_name)
+        num_shards = processor_config.dataset_dump_nshards
+        logging.info("Trying to dump %d shards of train dataset at %s", num_shards, output_path)
+        for shard_idx in num_shards:
+            shard = train_dataset.shard(index=shard_idx, num_shards=num_shards)
+            shard.to_parquet(f"{output_path}/ds_{shard_idx:05d}.parquet")         
+        logging.info("Dumped %d shards of train_dataset at %s", num_shards, output_path)
+        logging.info("exiting on user request")
+        os._exit(0)
 
     return (train_dataset, None, data_args.dataset_text_field)
 
@@ -348,7 +364,7 @@ def process_dataargs(
 
     if data_args.data_config_path:
         train_dataset, eval_dataset, dataset_text_field = _process_dataconfig_file(
-            data_args, tokenizer, additional_data_handlers
+            data_args, tokenizer, additional_data_handlers, output_dir=train_args.output_dir
         )
     else:
         train_dataset, eval_dataset, dataset_text_field = _process_raw_data_args(
