@@ -337,7 +337,11 @@ class DataPreProcessor:
                             kwargs["num_proc"] = os.cpu_count()
                             logger.info("setting num_proc to %s", os.cpu_count())
 
-                    if handler.handler_type == DataHandlerType.FILTER:
+                    if handler.handler_type == DataHandlerType.REMOVE:
+                        if "columns" not in kwargs:
+                            ValueError("Remove data handler needs columns to remove")
+                        raw_datasets = raw_datasets.remove_columns(kwargs["columns"])
+                    elif handler.handler_type == DataHandlerType.FILTER:
 
                         logger.info(
                             "Applying Handler: %s Args: %s", data_handler, kwargs

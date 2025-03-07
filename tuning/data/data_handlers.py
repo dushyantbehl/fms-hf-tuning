@@ -32,15 +32,15 @@ from tuning.utils.config_utils import process_jinja_placeholders
 class DataHandlerType(Enum):
     MAP = 1
     FILTER = 2
-
+    REMOVE = 3
 
 class DataHandler:
-    op: callable  # the actual handler function
-    handler_type: DataHandlerType  # either map or filter
-    allows_batching: bool  # supports batched mode or not
+    op: callable = None # the actual handler function
+    handler_type: DataHandlerType = None # either map or filter
+    allows_batching: bool = False # supports batched mode or not
 
     def __init__(
-        self, op: callable, handler_type: DataHandlerType, allows_batching: bool
+        self, op: callable=None, handler_type: DataHandlerType=None, allows_batching: bool=False
     ):
         self.op = op
         self.handler_type = handler_type
@@ -408,5 +408,8 @@ AVAILABLE_DATA_HANDLERS = {
         op=skip_large_text,
         handler_type=DataHandlerType.FILTER,
         allows_batching=False,
+    ),
+    "remove_columns": DataHandler(
+        handler_type=DataHandlerType.REMOVE,
     ),
 }
