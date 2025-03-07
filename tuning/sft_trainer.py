@@ -345,6 +345,11 @@ def train(
         time.time() - data_preprocessing_time
     )
 
+    logging.warning("formatted train dataset is ")
+    for d in formatted_train_dataset:
+        logging.warning(d)
+    logging.warning("done")
+
     if framework is not None and framework.requires_augmentation:
         model, (peft_config,) = framework.augmentation(
             model, train_args, modifiable_args=(peft_config,)

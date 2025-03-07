@@ -33,6 +33,7 @@ class DataHandlerType(Enum):
     MAP = 1
     FILTER = 2
     REMOVE = 3
+    RETAIN = 4
 
 class DataHandler:
     op: callable = None # the actual handler function
@@ -411,5 +412,8 @@ AVAILABLE_DATA_HANDLERS = {
     ),
     "remove_columns": DataHandler(
         handler_type=DataHandlerType.REMOVE,
+    ),
+    "retain_columns": DataHandler(
+        handler_type=DataHandlerType.RETAIN,
     ),
 }

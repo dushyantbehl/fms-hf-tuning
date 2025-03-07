@@ -1047,23 +1047,12 @@ def test_run_training_with_skip_large_text_handler():
         data_args = copy.deepcopy(DATA_ARGS)
 
         # set training_data_path and response_template to none
-        data_args.response_template = None
-        data_args.training_data_path = None
+        data_args.response_template = "<|assistant|>"
+        data_args.instruction_template = "<|user|>"
+        data_args.dataset_text_field = "formatted_chat"
 
         dataconfigfile = DATA_CONFIG_SKIP_LARGE_TEXT_HANDLER
-        datapath = TWITTER_COMPLAINTS_TOKENIZED_JSON
-
-        # add data_paths in data_config file
-        with tempfile.NamedTemporaryFile(
-            "w", delete=False, suffix=".yaml"
-        ) as temp_yaml_file:
-            with open(dataconfigfile, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-                datasets = data["datasets"]
-                for _, d in enumerate(datasets):
-                    d["data_paths"] = [datapath]
-                yaml.dump(data, temp_yaml_file)
-                data_args.data_config_path = temp_yaml_file.name
+        data_args.data_config_path = dataconfigfile
 
         train_args = copy.deepcopy(TRAIN_ARGS)
         train_args.output_dir = tempdir

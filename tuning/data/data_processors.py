@@ -341,6 +341,10 @@ class DataPreProcessor:
                         if "columns" not in kwargs:
                             ValueError("Remove data handler needs columns to remove")
                         raw_datasets = raw_datasets.remove_columns(kwargs["columns"])
+                    elif handler.handler_type == DataHandlerType.RETAIN:
+                        if "columns" not in kwargs:
+                            ValueError("Retain data handler needs columns to remove")
+                        raw_datasets = raw_datasets.select_columns(column_names=kwargs["columns"])
                     elif handler.handler_type == DataHandlerType.FILTER:
 
                         logger.info(
