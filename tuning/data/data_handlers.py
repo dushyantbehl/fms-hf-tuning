@@ -278,6 +278,13 @@ def apply_tokenizer_chat_template(
             "Tokenizer does not contain tokenizer.chat_template\
                           please pass data_args.chat_template"
         )
+    if 'tokenize' in kwargs:
+        msg = tokenizer.apply_chat_template(element, tokenize=False)
+        tok_msg = tokenizer(msg)
+        to_return = tok_msg | {
+            f"{dataset_text_field}": msg,
+        }
+        return to_return
     return {
         f"{dataset_text_field}": tokenizer.apply_chat_template(element, **kwargs)
     }
