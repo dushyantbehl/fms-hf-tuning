@@ -279,7 +279,7 @@ def apply_tokenizer_chat_template(
                           please pass data_args.chat_template"
         )
     return {
-        f"{dataset_text_field}": tokenizer.apply_chat_template(element, tokenize=False)
+        f"{dataset_text_field}": tokenizer.apply_chat_template(element, **kwargs)
     }
 
 
