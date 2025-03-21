@@ -35,13 +35,17 @@ class DataHandlerType(Enum):
     REMOVE = 3
     RETAIN = 4
 
+
 class DataHandler:
-    op: callable = None # the actual handler function
-    handler_type: DataHandlerType = None # either map or filter
-    allows_batching: bool = False # supports batched mode or not
+    op: callable = None  # the actual handler function
+    handler_type: DataHandlerType = None  # either map or filter
+    allows_batching: bool = False  # supports batched mode or not
 
     def __init__(
-        self, op: callable=None, handler_type: DataHandlerType=None, allows_batching: bool=False
+        self,
+        op: callable = None,
+        handler_type: DataHandlerType = None,
+        allows_batching: bool = False,
     ):
         self.op = op
         self.handler_type = handler_type
@@ -286,11 +290,13 @@ def apply_tokenizer_chat_template(
     else:
         converation = element
 
-    tools = element['tools'] if 'tools' in element else None
-    documents = element['documents'] if 'documents' in element else None
+    tools = element["tools"] if "tools" in element else None
+    documents = element["documents"] if "documents" in element else None
 
     return {
-        f"{dataset_text_field}": tokenizer.apply_chat_template(converation, tools=tools, documents=documents, tokenize=False)
+        f"{dataset_text_field}": tokenizer.apply_chat_template(
+            converation, tools=tools, documents=documents, tokenize=False
+        )
     }
 
 
