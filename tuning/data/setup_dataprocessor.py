@@ -173,7 +173,7 @@ def _get_dataset_formatting_handlers(data_args, packing, is_padding_free=False):
             arguments={"fn_kwargs": fn_kwargs, "batched": False},
         )
     else:
-        fn_kwargs["template"] = data_args.data_formatter_template
+        fn_kwargs["template"] = data_args.data_formatter_template.encode('utf-8').decode('unicode_escape')
         handler = DataHandlerConfig(
             "apply_custom_data_formatting_template",
             arguments={"fn_kwargs": fn_kwargs, "batched": False},
