@@ -342,6 +342,15 @@ def train(
         time.time() - data_preprocessing_time
     )
 
+    logger.warning("[DEBUG] formatted train dataset begin")
+    for d in formatted_train_dataset:
+        logging.warning(d)
+    logger.warning("[DEBUG] formatted train dataset end")
+
+    logger.warning("[DEBUG] picked up collator is %s" % data_collator)
+    logger.warning("[DEBUG] picked up max_seq_len is %s" % train_args.max_seq_length)
+    logger.warning("[DEBUG] picked up dataset text field %s" % data_args.dataset_text_field)
+
     if framework is not None and framework.requires_augmentation:
         model, (peft_config,) = framework.augmentation(
             model, train_args, modifiable_args=(peft_config,)
