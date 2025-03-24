@@ -236,7 +236,12 @@ class DataPreProcessor:
                 datasetconfig.name,
                 list(raw_datasets.features.keys()),
             )
+            logger.warning("[DEBUG] loaded dataset is ")
+            for d in raw_datasets["train"]:
+                logger.warning(str(d))
+            logger.warning("[DEBUG] loaded dataset done")
             return raw_datasets
+
 
         except Exception as e:
             raise ValueError(
