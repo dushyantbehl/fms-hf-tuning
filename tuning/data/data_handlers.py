@@ -388,7 +388,7 @@ def tokenize_and_apply_chat_template_with_masking(
     conversation_column_name: str = "messages",
     **kwargs):
     ## Taken from 
-    ## https://github.com/allenai/open-instruct/blob/f90f731b2e6b7c5e4ddd05a8eb7cf9e66648b9a7/open_instruct/dataset_transformation.py#L607
+    ## https://github.com/allenai/open-instruct/
     messages = element[conversation_column_name]
 
     if len(messages) == 0:
