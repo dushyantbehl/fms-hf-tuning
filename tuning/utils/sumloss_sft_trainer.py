@@ -1,6 +1,5 @@
 import torch
 from trl import SFTTrainer
-from typing import override
 from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -22,7 +21,6 @@ class SumLossSFTTrainer(SFTTrainer):
         # Disable model loss kwargs as we are overriding the model loss
         self.model_accepts_loss_kwargs = False
 
-    @override
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
     #def compute_loss_func(outputs, labels, num_items_in_batch):
         """
