@@ -19,6 +19,8 @@ class SumLossSFTTrainer(SFTTrainer):
         self.embedding_size = embedding_size
         self._total_train_tokens = 0
         logger.warning(f"===> Initialized SumLossSFTTrainer with embedding size {embedding_size}")
+        # Disable model loss kwargs as we are overriding the model loss
+        self.model_accepts_loss_kwargs = False
 
     @override
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
