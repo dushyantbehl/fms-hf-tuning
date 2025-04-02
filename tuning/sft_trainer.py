@@ -70,7 +70,7 @@ from tuning.utils.error_logging import (
 )
 from tuning.utils.logging import set_log_level
 from tuning.utils.tokenizer_data_utils import tokenizer_and_embedding_resize
-
+from tuning.utils.sumloss_sft_trainer import SumLossSFTTrainer
 
 def train(
     model_args: configs.ModelArguments,
@@ -375,16 +375,32 @@ def train(
     }
     training_args = SFTConfig(**transformer_kwargs, **additional_args)
 
-    trainer = SFTTrainer(
-        model=model,
-        tokenizer=tokenizer,
-        train_dataset=formatted_train_dataset,
-        eval_dataset=formatted_validation_dataset,
-        data_collator=data_collator,
-        args=training_args,
-        callbacks=trainer_callbacks,
-        peft_config=peft_config,
-    )
+    if train_args.enable_reduce_loss_sum:
+        #embedding_size = added_tokens_dict["new_embedding_size"]
+        embeddings = model.get_input_embeddings()
+        embedding_size = embeddings.weight.shape[0]
+        trainer = SumLossSFTTrainer(
+            model=model,
+            tokenizer=tokenizer,
+            train_dataset=formatted_train_dataset,
+            eval_dataset=formatted_validation_dataset,
+            data_collator=data_collator,
+            args=training_args,
+            callbacks=trainer_callbacks,
+            peft_config=peft_config,
+            embedding_size=embedding_size,
+        )
+    else:
+        trainer = SFTTrainer(
+            model=model,
+            tokenizer=tokenizer,
+            train_dataset=formatted_train_dataset,
+            eval_dataset=formatted_validation_dataset,
+            data_collator=data_collator,
+            args=training_args,
+            callbacks=trainer_callbacks,
+            peft_config=peft_config,
+        )
 
     # We track additional metrics and experiment metadata after trainer object creation
     # this ensure that the process is not repeated multiple times for FSDP runs.

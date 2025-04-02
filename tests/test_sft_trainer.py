@@ -113,6 +113,7 @@ TRAIN_ARGS = configs.TrainingArguments(
     max_seq_length=4096,
     save_strategy="epoch",
     output_dir="tmp",
+    enable_reduce_loss_sum=True
 )
 PEFT_PT_ARGS = peft_config.PromptTuningConfig(
     prompt_tuning_init="RANDOM",
