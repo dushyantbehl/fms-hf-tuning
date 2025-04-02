@@ -280,7 +280,7 @@ def _process_raw_data_args(
     tokenizer_kwargs["max_length"] = max_seq_length
     tokenizer_kwargs["truncation"] = True
     # Lets not pad in tokenizer...we can handle that in the collator
-    tokenizer_kwargs["padding"] = False
+    tokenizer_kwargs["padding"] = "longest"
 
     handlers = dataset_text_field = None
 
