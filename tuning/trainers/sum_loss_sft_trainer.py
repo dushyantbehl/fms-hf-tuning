@@ -4,10 +4,11 @@ from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
 
+DEFAULT_LABELS_KEY = "labels"
+
 class SumLossSFTTrainer(SFTTrainer):
 
     embedding_size: int
-    _total_train_tokens: float
 
     def __init__(
         self,
@@ -16,13 +17,31 @@ class SumLossSFTTrainer(SFTTrainer):
     ) -> None:
         super().__init__(**kwargs)
         self.embedding_size = embedding_size
-        self._total_train_tokens = 0
-        logger.warning(f"===> Initialized SumLossSFTTrainer with embedding size {embedding_size}")
-        # Disable model loss kwargs as we are overriding the model loss
-        self.model_accepts_loss_kwargs = False
 
+        # Disable model loss kwargs as we are overriding the model loss
+        # This is so that the loss calculated by us is divided over actual
+        # actual gradient accumulation steps inside HF Trainer
+        #
+        # See this code -
+        # https://github.com/huggingface/transformers/blob/\
+        #      41b9b92b52215bed472c9a534a06abbc3a9a95cd/src/transformers/trainer.py#L3769
+        self.model_accepts_loss_kwargs = False
+        logger.info(f"✅ Initialized SumLossSFTTrainer with embedding size {embedding_size}. "\
+                    "Switching trainer loss function with torch.nn.CrossEntropyLoss sum reduction")
+
+    # Overrides trl/sft_trainer::SFTTrainer compute_loss function.
+    # 
+    # This loss function is taken from OpenInstruct
+    # 
+    # https://github.com/allenai/open-instruct/blob/open_instruct/finetune.py
+    # 
+    # Using sum reduction for CrossEntropyLoss according to OpenInstruct
+    # helps in ensuring all tokens are weighed equally in the dataset which is
+    # important for high amount of gradient accumulation steps.
+    # For more details see their discussion on this transformers issue
+    # URL - https://github.com/huggingface/transformers/issues/24725
+    #
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
-    #def compute_loss_func(outputs, labels, num_items_in_batch):
         """
         Function to switch loss function calculation to reduce_loss=sum
         """
@@ -31,30 +50,26 @@ class SumLossSFTTrainer(SFTTrainer):
             if num_items_in_batch is not None:
                 loss_kwargs["num_items_in_batch"] = num_items_in_batch
             inputs = {**inputs, **loss_kwargs}
+    
+        # Run the forward pass
         outputs = model(**inputs, use_cache=False)
-        logits = outputs.logits
-        labels = inputs["labels"]
 
-        # reduce loss is sum
-        # this ensures that we weight all tokens in the dataset equally,
-        # rather than weighting each overall example equally when
-        # using high amounts of gradient accumulation.
-        # this can result in > 5 point improvements in AlpacaEval
-        # see https://github.com/huggingface/transformers/issues/24725 for
-        # more discussion and details.
+        # Extract logits and perform calculation for loss outside the modelling class
+        logits = outputs.logits
+        labels = inputs[DEFAULT_LABELS_KEY]
 
         # Shift so that tokens < n predict n
         shift_logits = logits[..., :-1, :].contiguous()
         shift_labels = labels[..., 1:].contiguous()
 
-        # get the loss function
+        # get the loss function from torch with sum reduction
         loss_fct = torch.nn.CrossEntropyLoss(reduction="sum")
 
-        # Flatten tensors
+        # Flatten tensors as expected by crossentropyloss
         shift_logits = shift_logits.view(-1, self.embedding_size)
         shift_labels = shift_labels.view(-1)
 
-        # Enable model parallelism
+        # Shift the data to device and run loss.
         shift_labels = shift_labels.to(shift_logits.device)
         loss = loss_fct(shift_logits, shift_labels)
     

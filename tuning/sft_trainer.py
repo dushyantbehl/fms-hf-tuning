@@ -70,7 +70,7 @@ from tuning.utils.error_logging import (
 )
 from tuning.utils.logging import set_log_level
 from tuning.utils.tokenizer_data_utils import tokenizer_and_embedding_resize
-from tuning.utils.sumloss_sft_trainer import SumLossSFTTrainer
+from tuning.trainers.sum_loss_sft_trainer import SumLossSFTTrainer
 
 def train(
     model_args: configs.ModelArguments,
