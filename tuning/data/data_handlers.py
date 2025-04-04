@@ -387,12 +387,45 @@ def tokenize_and_apply_chat_template_with_masking(
     max_seq_length: int = None,
     conversation_column_name: str = "messages",
     **kwargs):
-    ## Taken from 
-    ## https://github.com/allenai/open-instruct/
+    """Function to apply chat template to the dataset elements and
+       perform masking to ensure model is trained only on completions.
+       Assumes the dataset is modelled according to ChatML style format
+       like,
+       { messages: {'role': 'user', 'content': 'blah'}
+
+       Tokenizes the dataset and returns a tokenized element.
+       Requires that max_seq_length is passed to ensure truncation of
+       extra large samples. If samples are to be skipped truncated please
+       use filter data handler before using this to ensure skipping
+       of samples.
+
+       Expects to be run as a HF Map function.
+       Ensures that element contains `input_ids`, `labels` and
+       `attention_mask`
+       If used with `remove_columns=all` the dataset can be used
+       directly to train.
+    Args:
+        element: the HF Dataset samples
+        tokenizer: Tokenizer to be used.
+        max_seq_length: Max seq length of the tokens allowed.
+                        Required argument.
+        conversation_column_name: Name of the column which contains conversations
+                        Typically `messages`
+        kwargs: Unused by this function.
+    Returns:
+        Tokenized element which contains `input_ids` `labels` and `attention_mask`
+        with labels properly masked to train only on completions.
+    """
+
+    # This function is taken from OpenInstruct
+    # https://github.com/allenai/open-instruct/blob/\
+    #   d208aa371976a09152f61991951e981573e7582f/open_instruct/\
+    #   dataset_transformation.py#L632
+
     messages = element[conversation_column_name]
 
     if len(messages) == 0:
-        raise ValueError("conversations field is empty.")
+        raise ValueError(f"Contents of the column {conversation_column_name} must not be empty.")
 
     # Tokenize the whole sample
     input_ids = tokenizer.apply_chat_template(
