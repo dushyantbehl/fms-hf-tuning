@@ -372,9 +372,6 @@ def train(
     training_args = SFTConfig(**transformer_kwargs, **additional_args)
 
     if train_args.enable_reduce_loss_sum:
-        #embedding_size = added_tokens_dict["new_embedding_size"]
-        embeddings = model.get_input_embeddings()
-        embedding_size = embeddings.weight.shape[0]
         trainer = SumLossSFTTrainer(
             model=model,
             tokenizer=tokenizer,
@@ -384,7 +381,6 @@ def train(
             args=training_args,
             callbacks=trainer_callbacks,
             peft_config=peft_config,
-            embedding_size=embedding_size,
         )
     else:
         trainer = SFTTrainer(

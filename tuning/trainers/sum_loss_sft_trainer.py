@@ -12,11 +12,11 @@ class SumLossSFTTrainer(SFTTrainer):
 
     def __init__(
         self,
-        embedding_size: int,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.embedding_size = embedding_size
+        embeddings = self.model.get_input_embeddings()
+        self.embedding_size = embeddings.weight.shape[0]
 
         # Disable model loss kwargs as we are overriding the model loss
         # This is so that the loss calculated by us is divided over actual
@@ -26,7 +26,7 @@ class SumLossSFTTrainer(SFTTrainer):
         # https://github.com/huggingface/transformers/blob/\
         #      41b9b92b52215bed472c9a534a06abbc3a9a95cd/src/transformers/trainer.py#L3769
         self.model_accepts_loss_kwargs = False
-        logger.info(f"✅ Initialized SumLossSFTTrainer with embedding size {embedding_size}. "\
+        logger.info(f"✅ Initialized SumLossSFTTrainer with embedding size {self.embedding_size}. "\
                     "Switching trainer loss function with torch.nn.CrossEntropyLoss sum reduction")
 
     # Overrides trl/sft_trainer::SFTTrainer compute_loss function.
