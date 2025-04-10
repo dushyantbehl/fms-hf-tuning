@@ -16,7 +16,18 @@
 from transformers.utils import logging
 from trl import SFTTrainer
 import torch
-
+from torch import nn
+from typing import Union, Any
+from transformers.training_args import OptimizerNames
+from transformers.utils import (
+    is_torch_hpu_available,
+    is_torch_mlu_available,
+    is_torch_mps_available,
+    is_torch_musa_available,
+    is_torch_npu_available,
+    is_torch_xpu_available,
+    logging,
+)
 logger = logging.get_logger(__name__)
 
 DEFAULT_LABELS_KEY = "labels"
@@ -70,6 +81,74 @@ class SumLossSFTTrainer(SFTTrainer):
             + "This is an experimental feature and should be used as such "
             + " please report any issue you see with this function to the maintainers"
         )
+
+    def training_step(
+            self, model: nn.Module, inputs: dict[str, Union[torch.Tensor, Any]], num_items_in_batch=None
+        ) -> torch.Tensor:
+            """
+            Function overridden from SFTTrainer Perform a training step on a batch of inputs.
+
+            Subclass and override to inject custom behavior.
+
+            Args:
+                model (`nn.Module`):
+                    The model to train.
+                inputs (`Dict[str, Union[torch.Tensor, Any]]`):
+                    The inputs and targets of the model.
+
+                    The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
+                    argument `labels`. Check your model's documentation for all accepted arguments.
+
+            Return:
+                `torch.Tensor`: The tensor with training loss on this batch.
+            """
+            model.train()
+            if hasattr(self.optimizer, "train") and callable(self.optimizer.train):
+                self.optimizer.train()
+
+            inputs = self._prepare_inputs(inputs)
+
+            with self.compute_loss_context_manager():
+                loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+
+            del inputs
+            if (
+                self.args.torch_empty_cache_steps is not None
+                and self.state.global_step % self.args.torch_empty_cache_steps == 0
+            ):
+                if is_torch_xpu_available():
+                    torch.xpu.empty_cache()
+                elif is_torch_mlu_available():
+                    torch.mlu.empty_cache()
+                elif is_torch_musa_available():
+                    torch.musa.empty_cache()
+                elif is_torch_npu_available():
+                    torch.npu.empty_cache()
+                elif is_torch_mps_available(min_version="2.0"):
+                    torch.mps.empty_cache()
+                elif is_torch_hpu_available():
+                    logger.warning(
+                        "`torch_empty_cache_steps` is set but HPU device/backend does not support empty_cache()."
+                    )
+                else:
+                    torch.cuda.empty_cache()
+
+            kwargs = {}
+
+            # For LOMO optimizers you need to explicitly use the learnign rate
+            if self.args.optim in [OptimizerNames.LOMO, OptimizerNames.ADALOMO]:
+                kwargs["learning_rate"] = self._get_learning_rate()
+
+            if self.args.n_gpu > 1:
+                loss = loss.mean()  # mean() to average on multi-gpu parallel training
+
+            self.accelerator.backward(loss, **kwargs)
+
+            # Finally we need to normalize the loss for reporting
+            if not self.model_accepts_loss_kwargs and self.compute_loss_func is None:
+                loss = loss / self.args.gradient_accumulation_steps
+
+            return loss.detach()
 
     # Overrides trl/sft_trainer::SFTTrainer compute_loss function.
     #
