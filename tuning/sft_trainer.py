@@ -128,6 +128,10 @@ def train(
             Metadata contains information on number of added tokens while tuning.
     """
 
+    # init debugging
+    from accelerate.state import PartialState
+    state = PartialState()
+
     train_args, logger = set_log_level(train_args, "sft_trainer_train")
 
     # Validate parameters
@@ -374,6 +378,25 @@ def train(
         "dataset_kwargs": dataset_kwargs,
     }
     training_args = SFTConfig(**transformer_kwargs, **additional_args)
+
+    if state.is_main_process():
+        logger.info("************ Full list of args to the trainer ***************")
+        logger.info("model")
+        logger.info(model)
+        logger.info("tokenizer")
+        logger.info(tokenizer)
+        logger.info("train_dataset")
+        logger.info(formatted_train_dataset)
+        logger.info("eval_dataset")
+        logger.info(formatted_validation_dataset)
+        logger.info("data_collator")
+        logger.info(data_collator)
+        logger.info("training_args")
+        logger.info(train_args)
+        logger.info("callbacks")
+        logger.info(trainer_callbacks)
+        logger.info("peft_config")
+        logger.info(peft_config)
 
     if train_args.enable_reduce_loss_sum:
         trainer = SumLossSFTTrainer(
