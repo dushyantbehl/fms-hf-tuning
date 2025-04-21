@@ -39,6 +39,7 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import is_accelerate_available
 from trl import SFTConfig, SFTTrainer
 import transformers
+import datasets
 
 # Local
 from tuning.config import configs, peft_config
@@ -131,6 +132,20 @@ def train(
     # init debugging
     from accelerate.state import PartialState
     state = PartialState()
+
+    # Make one log on every process with the configuration for debugging.
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt="%m/%d/%Y %H:%M:%S",
+        level=logging.INFO,
+    )
+    logger.info(state, main_process_only=False)
+    if state.is_local_main_process:
+        datasets.utils.logging.set_verbosity_warning()
+        transformers.utils.logging.set_verbosity_info()
+    else:
+        datasets.utils.logging.set_verbosity_error()
+        transformers.utils.logging.set_verbosity_error()
 
     train_args, logger = set_log_level(train_args, "sft_trainer_train")
 
