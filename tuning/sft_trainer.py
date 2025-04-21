@@ -388,7 +388,7 @@ def train(
     }
     training_args = SFTConfig(**transformer_kwargs, **additional_args)
 
-    if state.is_main_process():
+    if state.is_main_process:
         logger.info("************ Full list of args to the trainer ***************")
         logger.info("model")
         logger.info(model)
