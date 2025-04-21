@@ -136,7 +136,6 @@ def train(
     train_args, logger = set_log_level(train_args, "sft_trainer_train")
 
     # Make one log on every process with the configuration for debugging.
-    logger.info(state, main_process_only=False)
     if state.is_local_main_process:
         datasets.utils.logging.set_verbosity_warning()
         transformers.utils.logging.set_verbosity_info()
