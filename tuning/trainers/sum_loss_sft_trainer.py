@@ -53,7 +53,7 @@ class SumLossSFTTrainer(SFTTrainer):
     
         # Run the forward pass
         outputs = model(**inputs, use_cache=False)
-        logger.info(f"loss from model is {outputs.loss}")
+        logger.info(f"Worker {self.args.process_index} loss from model is {outputs.loss}")
 
         # Extract logits and perform calculation for loss outside the modelling class
         logits = outputs.logits
@@ -74,6 +74,6 @@ class SumLossSFTTrainer(SFTTrainer):
         shift_labels = shift_labels.to(shift_logits.device)
         loss = loss_fct(shift_logits, shift_labels)
 
-        logger.info(f"loss from cross entropy sum function is {outputs.loss}")
+        logger.info(f"Worker {self.args.process_index} loss from cross entropy sum function is {loss}")
 
         return (loss, outputs) if return_outputs else loss
