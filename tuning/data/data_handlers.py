@@ -135,12 +135,12 @@ def tokenize_and_apply_input_masking(
     if add_eos_token:
         eos_token = tokenizer.eos_token
 
-    if not input_text.endswith((" ", "\n", "\t")) and not output_text.startswith(
-        (" ", "\n", "\t")
-    ):
-        combined = input_text + " " + output_text + eos_token
-    else:
-        combined = input_text + output_text + eos_token
+    #if not input_text.endswith((" ", "\n", "\t")) and not output_text.startswith(
+    #    (" ", "\n", "\t")
+    #):
+    #    combined = input_text + " " + output_text + eos_token
+    #else:
+    combined = input_text + output_text + eos_token
 
     tokenizer_kwargs = kwargs.get("tokenizer_kwargs", {})
 
