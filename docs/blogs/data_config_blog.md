@@ -4,32 +4,46 @@
 
 If you're working on fine-tuning foundation models, you know the importance of flexible, reliable data pipelines. That’s exactly what this library delivers—with **simplicity** at its core.
 
+This guide will walk you through how this library helps you structure, transform, and prepare your datasets using nothing more than a configuration file. Whether you're dealing with multiple datasets, need to split them intelligently, or want to stream them in chunks, this tool enables all of that and more.
+
 ---
 
 ## What You Can Do Without Writing a Single Line of Code
 
-- **Mix and match multiple datasets**—regardless of format.
-- **Configure sampling ratios**, so each dataset appears in your training stream exactly how you want.
-- **Split your data** into training and validation sets—all defined in a config file, no scripting needed.
-- **Stream massive datasets chunk by chunk**, ideal when you can’t fit everything in memory.
+The `fms-hf-tuning` library was built to simplify the most common, often painful, preprocessing needs for model training:
 
-Yep—**all with a simple YAML or JSON **``.
+- **Mix and match datasets of different formats** (e.g., `.jsonl`, folders of files).
+- **Define sampling ratios** to control how much each dataset contributes.
+- **Automatically split datasets** into training and validation subsets.
+- **Stream massive datasets from disk or remote sources** without loading everything into memory.
+- **Apply complex transformations** like filtering, renaming, and token manipulation using simple config declarations.
+
+All of this is configured through a single YAML or JSON file—no Python scripts required.
 
 ---
 
 ## What Does the `data_config` Look Like?
 
-A `data_config` is a structured file (YAML or JSON) powered behind the scenes by a schema. Here's how it works:
+At the heart of the library is the `data_config` file, which defines every part of your preprocessing pipeline. Here’s what it typically includes:
 
-At the top level, you define a ``, which specifies:
+### Top-Level `dataprocessor`
 
-- `type` (currently always `"default"`)
-- `streaming: true` if you want iterable streaming datasets
-- A global random seed—for reproducibility
-- Sampling stopping strategy: `"all_exhausted"` or `"first_exhausted"`
-- Optional chat template overrides
+This section controls global options:
 
-Then list your **datasets** like this:
+```yaml
+dataprocessor:
+  type: default
+  streaming: true
+  seed: 42
+  sampling_stopping_strategy: all_exhausted
+```
+
+- `type`: Currently always set to `default`.
+- `streaming`: Set to `true` to enable lazy loading.
+- `seed`: Ensures reproducibility.
+- `sampling_stopping_strategy`: Controls when to stop sampling. Options are `all_exhausted` or `first_exhausted`.
+
+### Dataset Definitions
 
 ```yaml
 datasets:
@@ -45,13 +59,20 @@ datasets:
     sampling: 0.3
 ```
 
-That simple config lets you mix A and B in a 70:30 ratio—no code, no hassle.
+Each dataset entry includes:
+
+- `name`: A label for the dataset.
+- `data_paths`: Path(s) to files or folders.
+- `builder`: Optional custom loader function.
+- `sampling`: A float (e.g., 0.3) that indicates the sampling weight.
+
+If you specify sampling for more than one dataset, the library will use interleaved sampling based on the weights.
 
 ---
 
-## Fine-Tuning Your Pipeline
+## Fine-Tuning Your Pipeline with Data Handlers
 
-The library includes "data handlers" you configure in the same file. Want to rename columns, remove tokens, filter examples? Just add handlers:
+Need to manipulate your data before training? You can add `data_handlers`, which apply Hugging Face dataset operations like `map`, `filter`, `remove_columns`, and more:
 
 ```yaml
 data_handlers:
@@ -62,20 +83,21 @@ data_handlers:
       fn_kwargs: {}
 ```
 
-These run in order and can rely on Hugging Face’s `map`, `filter`, `rename`, etc.
+Handlers are applied in the order you list them. Each one can be tailored with arguments that fit the specific transformation you're applying.
 
 ---
 
 ## Mixing vs. Concatenation
 
-- **Default**: All datasets are concatenated end-to-end.
-- **With **``** defined**: The library switches to interleaving datasets with weights and strategies you choose. Simple and powerful.
+By default, if you include multiple datasets without specifying sampling, they are simply concatenated together.
+
+If you define `sampling` values for each dataset, the library switches to **interleaved sampling**, which randomly mixes examples from each dataset in proportion to their defined sampling weights. This is especially useful for balancing dataset contributions during training.
 
 ---
 
 ## Built-In Splitting
 
-Want train/validation splits without separate files? Add a `split:` section to any dataset:
+If your dataset doesn’t already have a train/validation split, you can define one in the config:
 
 ```yaml
 datasets:
@@ -87,82 +109,97 @@ datasets:
       - data/fancy.jsonl
 ```
 
-For streaming datasets (if `streaming: true`), only full splits (`1.0` or `0.0`) are supported. For non-streaming types, you’re free to choose any ratio less than or equal to 1.
+- For **non-streaming datasets**, you can specify any float split that adds up to 1.0.
+- For **streaming datasets**, only full dataset splits (`1.0` or `0.0`) are supported.
+
+Splits are applied before sampling so that your validation set remains untouched by any interleaving logic.
 
 ---
 
 ## Train and Validate—No Manual Steps
 
-- The library automatically splits your datasets.
-- Sampling happens *after* splitting, so your validation set remains clean and consistent.
-- You just run:
-
-```bash
-sft_trainer.py --data_config_path path/to/config.yaml
-```
-
-And you’re off to the model races.
-
----
-
-## Want Streaming?
-
-Set `streaming: true` in `dataprocessor` to load datasets lazily and avoid memory issues. Just remember:
-
-- Use `max_steps`, not `num_train_epochs`, in your `TrainingArguments`
-- Don’t use multipack plugin—it’s incompatible with streaming.
-
----
-
-## How to Customize Chat Formatting
-
-Need a custom prompt or chat template? Inject it into your config:
-
-```yaml
-datapreprocessor:
-  chat_template: | 
-    {%- if messages[0]['role'] == 'system' %}
-    ...
-    {%- endif %}
-```
-
-Grab the official template from Granite or define your own multiline version—and paste it straight into the `data_config`.
-
----
-
-## Why You’ll Love It
-
-| Feature                   | Benefit                             |
-| ------------------------- | ----------------------------------- |
-| **Zero-code setup**       | Define everything in YAML/JSON      |
-| **Powerful mixing**       | Weighted sampling across datasets   |
-| **Smart splitting**       | Clean train/val split automatically |
-| **Streaming support**     | Scale to large, disk-based corpora  |
-| **Handler extensibility** | Customize pipelines easily          |
-
----
-
-## Quick Steps to Get Started
-
-1. Install the library
-2. Create a `data_config.yaml` (start from examples in `tests/predefined_data_configs`)
-3. Run:
+Once your `data_config.yaml` is ready, all you have to do is run the trainer script:
 
 ```bash
 python sft_trainer.py --data_config_path data_config.yaml
 ```
 
-4. Watch it automatically process, mix, split, and prepare your data—effortlessly.
+The library will take care of:
+
+- Loading the datasets
+- Applying splits and handlers
+- Mixing or streaming as configured
+
+---
+
+## Streaming Datasets at Scale
+
+If you're working with huge datasets that can’t be loaded into memory, enable streaming mode:
+
+```yaml
+dataprocessor:
+  streaming: true
+```
+
+Key things to keep in mind:
+
+- Use `max_steps` instead of `num_train_epochs` in your trainer config.
+- Streaming is **not compatible** with multipack plugins.
+
+Streaming mode keeps memory usage low and allows you to handle datasets of arbitrary size efficiently.
+
+---
+
+## How to Customize Chat Formatting
+
+If you're working with chat-style datasets and want to change the format of prompts, you can include a `chat_template` in your config:
+
+```yaml
+datapreprocessor:
+  chat_template: |
+    {%- if messages[0]['role'] == 'system' %}
+    ...
+    {%- endif %}
+```
+
+You can define multi-line Jinja templates directly in your YAML file. This gives you full control over how conversational inputs are formatted for the model.
+
+---
+
+## Why You’ll Love It
+
+| Feature                   | Benefit                              |
+| ------------------------- | ------------------------------------ |
+| **Zero-code setup**       | Define everything in YAML/JSON       |
+| **Powerful mixing**       | Weighted sampling across datasets    |
+| **Smart splitting**       | Clean train/val split automatically  |
+| **Streaming support**     | Scale to large, disk-based corpora   |
+| **Handler extensibility** | Customize pipelines easily           |
+| **Prompt templating**     | Support for chat-style model formats |
+
+---
+
+## Quick Steps to Get Started
+
+1. Install the library.
+2. Create a `data_config.yaml` using the examples in `tests/predefined_data_configs`.
+3. Run:
+
+```bash
+python sft_trainer.py --data_config_path data_config.yaml <additional training arguments>
+```
+
+4. Sit back and let the tool handle preprocessing, mixing, and loading.
 
 ---
 
 ## Final Thoughts
 
-This library hides complexity behind a clean, declarative config file that even beginners can understand. Whether you’re ironing out a two-dataset mix, splitting your data, streaming terabytes of text, or just renaming columns—you don’t need to code it manually—just declare it and go.
+`fms-hf-tuning` makes advanced dataset preprocessing as simple as writing a configuration file. From dataset mixing and validation splitting to streaming and handler functions, it’s designed to eliminate boilerplate and empower researchers and practitioners to focus on model development.
 
-If you’re fine-tuning foundation models and want a data pipeline that’s **flexible**, **robust**, and **super easy to use**, give `fms-hf-tuning` a go.
+If you're working with Hugging Face models or building custom training pipelines, this tool will save you time, reduce bugs, and standardize your workflows.
 
-For detailed examples, check the sample configs—your next data pipeline is just a config away.
+For detailed examples, check out the sample configurations in the repo.
 
 **Happy fine-tuning!**
 
