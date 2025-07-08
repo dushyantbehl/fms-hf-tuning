@@ -1,5 +1,3 @@
----
-
 # Welcome to Easy, Powerful Data Preprocessing with `fms-hf-tuning`
 
 If you're working on fine-tuning foundation models, you know the importance of flexible, reliable data pipelines. That’s exactly what this library delivers—with **simplicity** at its core.
@@ -19,6 +17,20 @@ The `fms-hf-tuning` library was built to simplify the most common, often painful
 - **Apply complex transformations** like filtering, renaming, and token manipulation using simple config declarations.
 
 All of this is configured through a single YAML or JSON file—no Python scripts required.
+
+---
+
+## Quick Steps to Get Started
+
+1. Install the `fms-hf-tuning` library.
+2. Create a `data_config.yaml` using the examples in `tests/predefined_data_configs`.
+3. Run:
+
+```bash
+python sft_trainer.py --data_config_path data_config.yaml <additional training arguments>
+```
+
+4. Sit back and let the tool handle preprocessing, mixing, and loading.
 
 ---
 
@@ -68,6 +80,12 @@ Each dataset entry includes:
 
 If you specify sampling for more than one dataset, the library will use interleaved sampling based on the weights.
 
+#### Mixing vs. Concatenation
+
+By default, if you include multiple datasets without specifying `sampling`, they are simply concatenated together.
+
+If you define `sampling` values for each dataset, the library switches to **interleaved sampling**, which randomly mixes examples from each dataset in proportion to their defined sampling weights. This is especially useful for balancing dataset contributions during training.
+
 ---
 
 ## Fine-Tuning Your Pipeline with Data Handlers
@@ -87,11 +105,21 @@ Handlers are applied in the order you list them. Each one can be tailored with a
 
 ---
 
-## Mixing vs. Concatenation
+## Streaming Datasets at Scale
 
-By default, if you include multiple datasets without specifying sampling, they are simply concatenated together.
+If you're working with huge datasets that can’t be loaded into memory, enable streaming mode:
 
-If you define `sampling` values for each dataset, the library switches to **interleaved sampling**, which randomly mixes examples from each dataset in proportion to their defined sampling weights. This is especially useful for balancing dataset contributions during training.
+```yaml
+dataprocessor:
+  streaming: true
+```
+
+Key things to keep in mind:
+
+- Use `max_steps` instead of `num_train_epochs` in your trainer config.
+- Streaming is **not compatible** with multipack plugins.
+
+Streaming mode keeps memory usage low and allows you to handle datasets of arbitrary size efficiently.
 
 ---
 
@@ -116,40 +144,6 @@ Splits are applied before sampling so that your validation set remains untouched
 
 ---
 
-## Train and Validate—No Manual Steps
-
-Once your `data_config.yaml` is ready, all you have to do is run the trainer script:
-
-```bash
-python sft_trainer.py --data_config_path data_config.yaml
-```
-
-The library will take care of:
-
-- Loading the datasets
-- Applying splits and handlers
-- Mixing or streaming as configured
-
----
-
-## Streaming Datasets at Scale
-
-If you're working with huge datasets that can’t be loaded into memory, enable streaming mode:
-
-```yaml
-dataprocessor:
-  streaming: true
-```
-
-Key things to keep in mind:
-
-- Use `max_steps` instead of `num_train_epochs` in your trainer config.
-- Streaming is **not compatible** with multipack plugins.
-
-Streaming mode keeps memory usage low and allows you to handle datasets of arbitrary size efficiently.
-
----
-
 ## How to Customize Chat Formatting
 
 If you're working with chat-style datasets and want to change the format of prompts, you can include a `chat_template` in your config:
@@ -166,6 +160,22 @@ You can define multi-line Jinja templates directly in your YAML file. This gives
 
 ---
 
+## Train and Validate—No Manual Steps
+
+Once your `data_config.yaml` is ready, all you have to do is run the trainer script:
+
+```bash
+python sft_trainer.py --data_config_path data_config.yaml
+```
+
+The library will take care of:
+
+- Loading the datasets
+- Applying splits and handlers
+- Mixing or streaming as configured
+
+---
+
 ## Why You’ll Love It
 
 | Feature                   | Benefit                              |
@@ -176,20 +186,6 @@ You can define multi-line Jinja templates directly in your YAML file. This gives
 | **Streaming support**     | Scale to large, disk-based corpora   |
 | **Handler extensibility** | Customize pipelines easily           |
 | **Prompt templating**     | Support for chat-style model formats |
-
----
-
-## Quick Steps to Get Started
-
-1. Install the library.
-2. Create a `data_config.yaml` using the examples in `tests/predefined_data_configs`.
-3. Run:
-
-```bash
-python sft_trainer.py --data_config_path data_config.yaml <additional training arguments>
-```
-
-4. Sit back and let the tool handle preprocessing, mixing, and loading.
 
 ---
 
