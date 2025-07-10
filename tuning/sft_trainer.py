@@ -16,7 +16,6 @@
 from typing import Dict, List, Optional, Union
 import dataclasses
 import json
-import logging
 import os
 import sys
 import time
@@ -64,8 +63,9 @@ from tuning.utils.error_logging import (
     USER_ERROR_EXIT_CODE,
     write_termination_log,
 )
-from tuning.utils.logging import get_logger, pretty_print_args
+from tuning.utils.logging import configure_logging, get_logger, pretty_print_args, get_active_log_level
 
+logger = get_logger(__name__)
 
 def train(
     model_args: configs.ModelArguments,
@@ -121,7 +121,11 @@ def train(
         Tuple: Instance of SFTTrainer , some metadata in a dict
             Metadata contains information on number of added tokens while tuning.
     """
-    logger, train_args.log_level = get_logger(logger_name="sft_trainer_train", train_args_loglevel=train_args.log_level)
+
+    # configure logging just in case someone enters here
+    configure_logging(level=train_args.log_level)
+    train_args.log_level = get_active_log_level()
+
     USE_ALORA = False
     try:
         # Third Party
@@ -487,7 +491,7 @@ def save(path: str, trainer: SFTTrainer, log_level="WARNING"):
         log_level: str
             Optional threshold to set save save logger to, default warning.
     """
-    logger = logging.getLogger("sft_trainer_save")
+    logger = get_logger(__name__)
     # default value from TrainingArguments
     if log_level == "passive":
         log_level = "WARNING"
@@ -661,8 +665,8 @@ def parse_arguments(parser, json_config=None):
 
 def main():
     parser = get_parser()
-    logger = logging.getLogger()
     job_config = get_json_config()
+
     # accept arguments via command-line or JSON
     try:
         (
@@ -679,8 +683,9 @@ def main():
             exp_metadata,
         ) = parse_arguments(parser, job_config)
 
-        # Function to set log level for python native logger and transformers training logger
-        logger, training_args.log_level = get_logger(logger_name=__name__, train_args_loglevel=training_args.log_level)
+        # configure logging
+        configure_logging(level=training_args.log_level)
+        training_args.log_level = get_active_log_level()
         
         logger.info("fms-hf-tuning execution start")
         logger.info(f"{pretty_print_args({
@@ -800,12 +805,11 @@ def main():
                 ) as f:
                     json.dump(additional_train_info["added_tokens_info"], f)
         except Exception as e:  # pylint: disable=broad-except
-            logging.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             write_termination_log(
                 f"Exception encountered when saving metadata with model artifacts: {e}"
             )
             sys.exit(INTERNAL_ERROR_EXIT_CODE)
-
 
 if __name__ == "__main__":
     main()
