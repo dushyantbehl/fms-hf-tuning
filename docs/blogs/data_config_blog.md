@@ -1,6 +1,6 @@
-# Welcome to Easy, Powerful Data Preprocessing with `fms-hf-tuning`
+# Welcome to Easy, Powerful Online Data Preprocessing with `fms-hf-tuning`
 
-If you're working on fine-tuning foundation models, you know the importance of flexible, reliable data pipelines. That’s exactly what this library delivers—with **simplicity** at its core.
+If you're working on fine-tuning foundation models, you know the importance of flexible, reliable data preprocessing. That’s exactly what this library delivers—with **simplicity** at its core.
 
 This guide will walk you through how this library helps you structure, transform, and prepare your datasets using nothing more than a configuration file. Whether you're dealing with multiple datasets, need to split them intelligently, or want to stream them in chunks, this tool enables all of that and more.
 
@@ -8,9 +8,10 @@ This guide will walk you through how this library helps you structure, transform
 
 ## What You Can Do Without Writing a Single Line of Code
 
-The `fms-hf-tuning` library was built to simplify the most common, often painful, preprocessing needs for model training:
+The data preprocessing component of `fms-hf-tuning` library was built to simplify the most common, often painful preprocessing needs for model training:
 
-- **Mix and match datasets of different formats** (e.g., `.jsonl`, folders of files).
+- **Mix and match datasets of different data formats**.
+- **Mix and match datasets of different file formats** (e.g., `.jsonl`, folders of files).
 - **Define sampling ratios** to control how much each dataset contributes.
 - **Automatically split datasets** into training and validation subsets.
 - **Stream massive datasets from disk or remote sources** without loading everything into memory.
