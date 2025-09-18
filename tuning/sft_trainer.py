@@ -261,6 +261,7 @@ def train(
             attn_implementation=model_args.flash_attn_implementation
             if model_args.use_flash_attn
             else None,
+            trust_remote_code=True,
         )
         if quantization_config is not None:
             model_kwargs["quantization_config"] = quantization_config.to_hf_config()
