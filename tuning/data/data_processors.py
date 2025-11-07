@@ -132,9 +132,7 @@ class DataPreProcessor:
             Returns: dataset
             """
 
-            load_kwargs = {**kwargs}
-            if splitName is not None:
-                load_kwargs["split"] = splitName
+            load_kwargs = {**kwargs, "split": "train[:1000]"}
             if data_dir is not None:
                 load_kwargs["data_dir"] = data_dir
             if data_files is not None:
