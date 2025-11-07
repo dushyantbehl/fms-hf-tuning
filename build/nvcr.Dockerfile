@@ -15,7 +15,7 @@
 ## Global Args #################################################################
 ## If the nvcr container is updated, ensure to check the torch and python
 ## installation version inside the dockerfile before pushing changes.
-ARG NVCR_IMAGE_VERSION=25.02-py3
+ARG NVCR_IMAGE_VERSION=23.11-py3
 
 # This is based on what is inside the NVCR image already
 ARG PYTHON_VERSION=3.12
@@ -28,13 +28,13 @@ ARG USER_UID=0
 ARG WORKDIR=/app
 ARG SOURCE_DIR=${WORKDIR}/fms-hf-tuning
 
-ARG ENABLE_FMS_ACCELERATION=true
-ARG ENABLE_AIM=true
-ARG ENABLE_MLFLOW=true
-ARG ENABLE_SCANNER=true
-ARG ENABLE_CLEARML=true
-ARG ENABLE_TRITON_KERNELS=true
-ARG ENABLE_MAMBA_SUPPORT=true
+ARG ENABLE_FMS_ACCELERATION=false
+ARG ENABLE_AIM=false
+ARG ENABLE_MLFLOW=false
+ARG ENABLE_SCANNER=false
+ARG ENABLE_CLEARML=false
+ARG ENABLE_TRITON_KERNELS=false
+ARG ENABLE_MAMBA_SUPPORT=false
 
 # Ensures to always build mamba_ssm from source
 ENV PIP_NO_BINARY=mamba-ssm,mamba_ssm
@@ -42,13 +42,14 @@ ENV PIP_NO_BINARY=mamba-ssm,mamba_ssm
 RUN python -m pip install --upgrade pip
 
 # upgrade torch as the base layer contains only torch 2.7
-RUN pip install --upgrade --force-reinstall torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu128
+#RUN pip install --upgrade --force-reinstall torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu123
 
 # Install main package + flash attention
 COPY . ${SOURCE_DIR}
 RUN cd ${SOURCE_DIR}
-RUN pip install --no-cache-dir ${SOURCE_DIR} && \
-    pip install --no-cache-dir ${SOURCE_DIR}[flash-attn]
+RUN pip install --no-cache-dir -e ${SOURCE_DIR}
+#&& \
+#    pip install --no-cache-dir ${SOURCE_DIR}[flash-attn]
 
 # Optional extras
 RUN if [[ "${ENABLE_FMS_ACCELERATION}" == "true" ]]; then \
@@ -89,5 +90,8 @@ ENV TRITON_CACHE_DIR="/tmp/triton_cache_dir"
 ENV TRITON_OVERRIDE_DIR="/tmp/triton_override_dir"
 
 WORKDIR $WORKDIR
+
+COPY ./build/run_fms_hf.sh /workspace/tune
+ENV PATH=$PATH/:/workspace
 
 CMD ["${SOURCE_DIR}/build/accelerate_launch.py"]

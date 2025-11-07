@@ -19,7 +19,7 @@ from typing import List, Optional
 
 # Third Party
 from peft import LoraConfig as HFLoraConfig
-from transformers.utils.quantization_config import Mxfp4Config as HfMxfp4Config
+#from transformers.utils.quantization_config import Mxfp4Config as HfMxfp4Config
 
 
 class QUANT_METHOD(Enum):
@@ -37,7 +37,7 @@ class Mxfp4Config:
     dequantize: bool = True
 
     def to_hf_config(self):
-        return HfMxfp4Config(dequantize=self.dequantize)
+        return None #HfMxfp4Config(dequantize=self.dequantize)
 
 
 @dataclass
