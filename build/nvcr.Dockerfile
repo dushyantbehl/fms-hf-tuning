@@ -91,4 +91,7 @@ ENV TRITON_OVERRIDE_DIR="/tmp/triton_override_dir"
 
 WORKDIR $WORKDIR
 
+COPY ./run_fms_hf.sh /workspace/tune
+ENV PATH=$PATH/:/workspace
+
 CMD ["${SOURCE_DIR}/build/accelerate_launch.py"]
