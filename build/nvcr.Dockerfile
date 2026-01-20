@@ -38,6 +38,9 @@ ARG ENABLE_TRITON_KERNELS=true
 # Ensures to always build mamba_ssm from source
 ENV PIP_NO_BINARY=mamba-ssm,mamba_ssm
 
+COPY build/cleanup-disk.sh /tmp/cleanup-disk.sh
+RUN /bin/bash -s /tmp/cleanup-disk.sh
+
 # upgrade torch as the base layer contains only torch 2.7
 RUN python -m pip install --upgrade pip && \
     pip install --upgrade setuptools && \
