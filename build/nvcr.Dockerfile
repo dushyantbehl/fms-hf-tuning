@@ -15,7 +15,7 @@
 ## Global Args #################################################################
 ## If the nvcr container is updated, ensure to check the torch and python
 ## installation version inside the dockerfile before pushing changes.
-ARG NVCR_IMAGE_VERSION=25.02-py3
+ARG NVCR_IMAGE_VERSION=25.09-py3
 
 # This is based on what is inside the NVCR image already
 ARG PYTHON_VERSION=3.12
@@ -38,13 +38,10 @@ ARG ENABLE_TRITON_KERNELS=true
 # Ensures to always build mamba_ssm from source
 ENV PIP_NO_BINARY=mamba-ssm,mamba_ssm
 
-COPY build/cleanup-disk.sh /tmp/cleanup-disk.sh
-RUN /bin/bash -s /tmp/cleanup-disk.sh
+RUN rm -rf /opt/torch
 
-# upgrade torch as the base layer contains only torch 2.7
 RUN python -m pip install --upgrade pip && \
-    pip install --upgrade setuptools && \
-    pip install --upgrade --force-reinstall torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu128
+    pip install --upgrade setuptools
 
 # Install main package + flash attention
 COPY . ${SOURCE_DIR}
@@ -84,7 +81,7 @@ RUN if [[ "${ENABLE_SCANNER}" == "true" ]]; then \
 RUN rm -rf /root/.cache /tmp/* /opt/pytorch
 
 ######################## RUNTIME ########################
-FROM nvcr.io/nvidia/pytorch:${NVCR_IMAGE_VERSION}
+FROM builder
 
 WORKDIR ${WORKDIR}
 
@@ -94,7 +91,7 @@ COPY --from=builder /usr/local/lib/python3.12/dist-packages \
 COPY --from=builder ${SOURCE_DIR} ${SOURCE_DIR}
 
 # Runtime cleanup
-RUN rm -rf /opt/pytorch /root/.cache /tmp/*
+RUN rm -rf /opt/ /root/.cache /tmp/*
 
 RUN chmod -R g+rwX $WORKDIR /tmp
 RUN mkdir -p /.cache && chmod -R 777 /.cache
