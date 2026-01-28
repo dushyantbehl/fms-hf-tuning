@@ -21,7 +21,7 @@ ARG NVCR_IMAGE_VERSION=25.09-py3
 ARG PYTHON_VERSION=3.12
 
 ######################## BUILDER ########################
-FROM nvcr.io/nvidia/pytorch:${NVCR_IMAGE_VERSION} AS builder
+FROM pytorch/pytorch:2.9.0-cuda12.8-cudnn9-runtime AS builder
 
 ARG USER=root
 ARG USER_UID=0
@@ -38,10 +38,11 @@ ARG ENABLE_TRITON_KERNELS=true
 # Ensures to always build mamba_ssm from source
 ENV PIP_NO_BINARY=mamba-ssm,mamba_ssm
 
-RUN rm -rf /opt/torch
-
 RUN python -m pip install --upgrade pip && \
     pip install --upgrade setuptools
+
+ RUN apt-get -y update && \
+     apt-get install -y git
 
 # Install main package + flash attention
 COPY . ${SOURCE_DIR}
