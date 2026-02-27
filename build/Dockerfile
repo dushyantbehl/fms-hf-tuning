@@ -189,9 +189,6 @@ RUN if [[ "${ENABLE_SCANNER}" == "true" ]]; then \
 RUN if [[ "${ENABLE_CLEARML}" == "true" ]]; then \
         python -m pip install --user "$(head bdist_name)[clearml]"; \
     fi
-RUN if [[ "${ENABLE_RECOMMENDER}" == "true" ]]; then \
-        python -m pip install --user "$(head bdist_name)[tuning-config-recommender]"; \
-    fi
 
     # Clean up the wheel module. It's only needed by flash-attn install
 RUN python -m pip uninstall wheel build -y && \

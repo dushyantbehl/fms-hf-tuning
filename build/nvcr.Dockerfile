@@ -77,9 +77,6 @@ RUN if [[ "${ENABLE_MLFLOW}" == "true" ]]; then \
 RUN if [[ "${ENABLE_SCANNER}" == "true" ]]; then \
         pip install --no-cache-dir ${SOURCE_DIR}[scanner-dev]; \
     fi
-RUN if [[ "${ENABLE_RECOMMENDER}" == "true" ]]; then \
-        pip install --no-cache-dir ${SOURCE_DIR}[tuning_config_recommender]; \
-    fi
 
 # cleanup
 RUN rm -rf /root/.cache /tmp/* /opt/pytorch
