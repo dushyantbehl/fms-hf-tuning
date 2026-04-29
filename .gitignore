@@ -5,6 +5,7 @@ __pycache__
 .coverage.*
 durations/*
 coverage*.xml
+.claude*/
 dist
 htmlcov
 test
